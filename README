@@ -1,0 +1,16 @@
+this is a linux device driver for Validity finger print scanner vfs301 (usb device 138a:0005)
+this is a work in progress
+
+How to install
+---------------------
+%cd driver
+%make
+%insmod vfs301.ko
+
+
+
+System requirements
+---------------------
+kernel 2.6.20 and above
+the actual vfs301 device!
+
