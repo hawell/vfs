@@ -1,8 +1,20 @@
 /*
- * protocol.c
+ *  Copyright (c) 2011-2012 Arash Kordi <arash.cordi@gmail.com>
  *
- *  Created on: Mar 25, 2012
- *      Author: arash
+ *  This file is part of vfs.
+ *
+ *  vfs is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  vfs is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with vfs.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include "defs.h"
@@ -51,7 +63,9 @@ int bulkin_data(struct vfs_device_t *dev, int len)
 
 	INF("bulk_in_data : pipe=%u, transfer=%d, result=%d\n", pipe, count, r);
 
-	//print_data(dev->bulkin_ctrl_buffer, count);
+	/*
+	print_data(dev->bulkin_ctrl_buffer, count);
+	*/
 	if (!r)
 		return count;
 
@@ -71,8 +85,9 @@ int bulkout(struct vfs_device_t *dev, unsigned char* data, int len)
 
 	INF("bulk_out : pipe=%u, transfer=%d, result=%d\n", pipe, count, r);
 
-	//print_data(dev->bulkout_buffer, count);
-
+	/*
+	print_data(dev->bulkout_buffer, count);
+	*/
 	if (!r)
 		return count;
 

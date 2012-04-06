@@ -1,8 +1,20 @@
 /*
- * validity_vfs.c
+ *  Copyright (c) 2011-2012 Arash Kordi <arash.cordi@gmail.com>
  *
- *  Created on: Aug 19, 2011
- *      Author: arash
+ *  This file is part of vfs.
+ *
+ *  vfs is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  vfs is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with vfs.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include "defs.h"
@@ -195,7 +207,7 @@ static struct usb_driver vfs_driver = {
 	.id_table = device_table,
 	.probe = vfsdev_probe,
 	.disconnect = vfsdev_disconnect,
-	//.supports_autosuspend = 1,
+	/*.supports_autosuspend = 1,*/
 };
 
 static int __init usb_vfs_init(void)
