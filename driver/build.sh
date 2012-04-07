@@ -1,1 +1,0 @@
-make -C /usr/src/kernels/`uname -r` M=`pwd` modules
