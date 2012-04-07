@@ -28,6 +28,6 @@ int protocol_initialize(struct vfs_device_t *dev);
 void protocol_request_fingerprint(struct vfs_device_t *dev);
 int protocol_pol_device(struct vfs_device_t *dev);
 int protocol_read_fingerprint(struct vfs_device_t *dev);
-void protocol_process_image_data(struct vfs_device_t *dev, int size);
+void protocol_process_image_data(struct vfs_device_t *dev, int size, int first_block);
 
 #endif /* PROTOCOL_H_ */

@@ -43,7 +43,7 @@ int bulkin_ctrl(struct vfs_device_t *dev, int len)
 
 	r = usb_bulk_msg(dev->udev, pipe, dev->bulkin_ctrl_buffer, count, &count, DEFAULT_TIMEOUT);
 
-	INF("bulk_in_ctrl : pipe=%u, transfer=%d, result=%d\n", pipe, count, r);
+	DBG("bulk_in_ctrl : pipe=%u, transfer=%d, result=%d\n", pipe, count, r);
 
 	print_data(dev->bulkin_ctrl_buffer, count);
 
@@ -61,7 +61,7 @@ int bulkin_data(struct vfs_device_t *dev, int len)
 
 	r = usb_bulk_msg(dev->udev, pipe, dev->bulkin_data_buffer, count, &count, DEFAULT_TIMEOUT);
 
-	INF("bulk_in_data : pipe=%u, transfer=%d, result=%d\n", pipe, count, r);
+	DBG("bulk_in_data : pipe=%u, transfer=%d, result=%d\n", pipe, count, r);
 
 	/*
 	print_data(dev->bulkin_ctrl_buffer, count);
@@ -76,14 +76,13 @@ int bulkout(struct vfs_device_t *dev, unsigned char* data, int len)
 {
 	unsigned int pipe = usb_sndbulkpipe(dev->udev, SEND_DATA_ENDPOINT);
 	int count = len;
-	int r,i;
+	int r;
 
-	for (i=0; i<len; i++)
-		dev->bulkout_buffer[i] = data[i];
+	memcpy(dev->bulkout_buffer, data, len);
 
 	r = usb_bulk_msg(dev->udev, pipe, dev->bulkout_buffer, count, &count, DEFAULT_TIMEOUT);
 
-	INF("bulk_out : pipe=%u, transfer=%d, result=%d\n", pipe, count, r);
+	DBG("bulk_out : pipe=%u, transfer=%d, result=%d\n", pipe, count, r);
 
 	/*
 	print_data(dev->bulkout_buffer, count);
@@ -97,8 +96,6 @@ int bulkout(struct vfs_device_t *dev, unsigned char* data, int len)
 int protocol_configure_device(struct vfs_device_t *dev)
 {
 	unsigned int pipe = usb_sndctrlpipe(dev->udev, 0x00);
-	unsigned int pipe2 = usb_rcvctrlpipe(dev->udev, 0x80);
-	unsigned char data[20];
 
 	int r;
 
@@ -108,27 +105,8 @@ int protocol_configure_device(struct vfs_device_t *dev)
 	usb_reset_endpoint(dev->udev, dev->bulkin_ctrl_endpointAddr);
 	usb_reset_endpoint(dev->udev, dev->bulkout_endpointAddr);
 
-	r = usb_control_msg(dev->udev, pipe2, 0, 0x80, 0, 0, data, 2, 300 * HZ / 1000);
-	DBG("ctrl_io : pipe=%u, result=%d\n", pipe2, r);
-	print_data(data, 2);
-
-	r = usb_control_msg(dev->udev, pipe, 3, 0, 1, 0, NULL, 0, 300 * HZ / 1000);
-	DBG("ctrl_io : pipe=%u, result=%d\n", pipe, r);
-
 	r = usb_control_msg(dev->udev, pipe, 3, 0, 1, 1, NULL, 0, 300 * HZ / 1000);
 	DBG("ctrl_io : pipe=%u, result=%d\n", pipe, r);
-
-	r = usb_control_msg(dev->udev, pipe2, 0, 0x80, 0, 0, data, 2, 300 * HZ / 1000);
-	DBG("ctrl_io : pipe=%u, result=%d\n", pipe2, r);
-	print_data(data, 2);
-
-	r = usb_control_msg(dev->udev, pipe2, 0, 0x82, 0, 0x81, data, 2, 300 * HZ / 1000);
-	DBG("ctrl_io : pipe=%u, result=%d\n", pipe2, r);
-	print_data(data, 2);
-
-	r = usb_control_msg(dev->udev, pipe2, 0, 0x82, 0, 0x82, data, 2, 300 * HZ / 1000);
-	DBG("ctrl_io : pipe=%u, result=%d\n", pipe2, r);
-	print_data(data, 2);
 
 	usb_set_device_state(dev->udev, USB_STATE_CONFIGURED);
 
@@ -238,7 +216,7 @@ int protocol_read_fingerprint(struct vfs_device_t *dev)
 	bulkin_data(dev, 64);
 
 	val = bulkin_data(dev, 84032);
-	protocol_process_image_data(dev, val);
+	protocol_process_image_data(dev, val, 1);
 
 	if (val < 84032)
 		goto end;
@@ -246,9 +224,11 @@ int protocol_read_fingerprint(struct vfs_device_t *dev)
 	do
 	{
 		val = bulkin_data(dev, 84096);
-		protocol_process_image_data(dev, val);
+		protocol_process_image_data(dev, val, 0);
 	}
 	while (val == 84096);
+
+	dev->fingerprint_length = (dev->fingerprint_length / VFS_SEGMENT_LENGTH) * VFS_SEGMENT_LENGTH;
 
 end:
 	mutex_unlock(&dev->io_mutex);
@@ -278,14 +258,62 @@ int protocol_pol_device(struct vfs_device_t *dev)
 		return -1;
 }
 
-void protocol_process_image_data(struct vfs_device_t *dev, int size)
+int diff_lines(unsigned char* l1, unsigned char* l2)
 {
-	int i;
+	/*
+	 * TODO: this diff method is no good
+	 */
+	int sum=0,i;
 
-	for (i=0; i<size; i++)
+	for (i=272; i<285; i++)
 	{
-		if (dev->fingerprint_length >= MAX_FINGERPRINT_SIZE)
-			break;
-		dev->fingerprint_buffer[dev->fingerprint_length++] = dev->bulkin_data_buffer[i];
+		if (l1[i]>l2[i])
+			sum += l1[i] - l2[i];
+		else
+			sum += l2[i] - l1[i];
 	}
+	return sum > SCANLINE_DIFF_TRESHOLD;
+}
+
+void protocol_process_image_data(struct vfs_device_t *dev, int size, int first_block)
+{
+	int pos=0;
+	static int plen = 0;
+
+	if (dev->fingerprint_length + size >= MAX_FINGERPRINT_SIZE)
+		return;
+
+	if (first_block)
+	{
+		plen = 0;
+		while (!(dev->bulkin_data_buffer[pos]==0x01 && dev->bulkin_data_buffer[pos+1]==0xfe)) pos++;
+		memcpy(dev->fingerprint_buffer, dev->bulkin_data_buffer + pos, VFS_SEGMENT_LENGTH);
+		pos += VFS_SEGMENT_LENGTH;
+		dev->fingerprint_length += VFS_SEGMENT_LENGTH;
+	}
+	else
+	{
+		if (plen)
+		{
+			memcpy(dev->fingerprint_buffer + dev->fingerprint_length, dev->bulkin_data_buffer, VFS_SEGMENT_LENGTH - plen);
+			dev->fingerprint_length += VFS_SEGMENT_LENGTH - plen;
+			pos += VFS_SEGMENT_LENGTH - plen;
+			if (!diff_lines(dev->fingerprint_buffer+dev->fingerprint_length-VFS_SEGMENT_LENGTH*2, dev->fingerprint_buffer+dev->fingerprint_length-VFS_SEGMENT_LENGTH))
+				dev->fingerprint_length -= VFS_SEGMENT_LENGTH;
+		}
+
+	}
+
+	while (size - pos >= VFS_SEGMENT_LENGTH)
+	{
+		if (diff_lines(dev->fingerprint_buffer+dev->fingerprint_length-VFS_SEGMENT_LENGTH, dev->bulkin_data_buffer+pos))
+		{
+			memcpy(dev->fingerprint_buffer + dev->fingerprint_length, dev->bulkin_data_buffer+pos, VFS_SEGMENT_LENGTH);
+			dev->fingerprint_length += VFS_SEGMENT_LENGTH;
+		}
+		pos += VFS_SEGMENT_LENGTH;
+	}
+	plen = size-pos;
+	memcpy(dev->fingerprint_buffer + dev->fingerprint_length, dev->bulkin_data_buffer+pos, plen);
+	dev->fingerprint_length += plen;
 }
