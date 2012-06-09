@@ -44,6 +44,14 @@ static ssize_t vfsdev_read(struct file* file, char __user *buffer, size_t count,
 	dev = file->private_data;
 
 	mutex_lock(&dev->io_mutex);
+	if (*ppos == 0)
+		dev->fingerprint_length = 0;
+	mutex_unlock(&dev->io_mutex);
+
+	if (wait_event_interruptible(dev->io_block, dev->fingerprint_length > 0))
+		return -ERESTART;
+
+	mutex_lock(&dev->io_mutex);
 
 	if (!dev->fingerprint_length)
 		goto end;

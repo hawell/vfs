@@ -32,6 +32,7 @@
 #include <linux/usb/ch9.h>
 #include <linux/mutex.h>
 #include <linux/delay.h>
+#include <linux/wait.h>
 
 #include "log.h"
 

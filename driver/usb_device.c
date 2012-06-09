@@ -84,6 +84,7 @@ int vfsdev_probe(struct usb_interface *interface, const struct usb_device_id *id
 	mutex_init(&dev->io_mutex);
 	atomic_set(&dev->terminate_poling, 0);
 	init_completion(&dev->poling_completion);
+	init_waitqueue_head(&dev->io_block);
 
 	dev->udev = usb_get_dev(interface_to_usbdev(interface));
 	dev->interface = interface;

@@ -48,6 +48,9 @@ struct vfs_device_t {
 	atomic_t				terminate_poling;
 	struct completion		poling_completion;
 
+	/* blocking io */
+	wait_queue_head_t		io_block;
+
 	/* fingerprint data */
 	unsigned char*			fingerprint_buffer;
 	size_t					fingerprint_length;

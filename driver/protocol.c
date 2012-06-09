@@ -232,6 +232,7 @@ int protocol_read_fingerprint(struct vfs_device_t *dev)
 
 end:
 	mutex_unlock(&dev->io_mutex);
+	wake_up_interruptible(&dev->io_block);
 
 	bulkout(dev, pol_4, 1);
 	val = bulkin_ctrl(dev, 2);
