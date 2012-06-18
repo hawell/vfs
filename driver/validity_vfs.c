@@ -55,8 +55,14 @@ static ssize_t vfsdev_read(struct file* file, char __user *buffer, size_t count,
 
 	if (!dev->fingerprint_length)
 		goto end;
+
 	if (*ppos >= dev->fingerprint_length)
+	{
+		dev->fingerprint_length = 0;
+		*ppos = 0;
 		goto end;
+	}
+
 	if (*ppos+count > dev->fingerprint_length)
 		count = dev->fingerprint_length - *ppos;
 
