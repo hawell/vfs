@@ -1,6 +1,8 @@
 /*
  *  Copyright (c) 2011-2012 Arash Kordi <arash.cordi@gmail.com>
  *
+ *  Copyright (c) 2017-2018 Gaurav Mishra <gmishx@gmail.com>
+ *
  *  This file is part of vfs.
  *
  *  vfs is free software: you can redistribute it and/or modify
@@ -33,6 +35,10 @@
 #include <linux/mutex.h>
 #include <linux/delay.h>
 #include <linux/wait.h>
+#include <linux/version.h>
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,35))
+#include <linux/kthread.h>
+#endif
 
 #include "log.h"
 

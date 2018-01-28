@@ -1,6 +1,8 @@
 /*
  *  Copyright (c) 2011-2012 Arash Kordi <arash.cordi@gmail.com>
  *
+ *  Copyright (c) 2017-2018 Gaurav Mishra <gmishx@gmail.com>
+ *
  *  This file is part of vfs.
  *
  *  vfs is free software: you can redistribute it and/or modify
@@ -172,7 +174,12 @@ int vfsdev_probe(struct usb_interface *interface, const struct usb_device_id *id
 	protocol_request_fingerprint(dev);
 	DBG("requesting finger print done");
 
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(2,6,35))
 	kernel_thread(poling_thread, dev, 0);
+#else
+	kthread_run(poling_thread, dev, "vfsthread");
+#endif
+
 
 	/* let the user know what node this device is now attached to */
 	 INF("USB vfs device now attached to USBSVFS-%d", interface->minor);
