@@ -1,6 +1,8 @@
 /*
  *  Copyright (c) 2011-2012 Arash Kordi <arash.cordi@gmail.com>
  *
+ *  Copyright (c) 2017-2018 Gaurav Mishra <gmishx@gmail.com>
+ *
  *  This file is part of vfs.
  *
  *  vfs is free software: you can redistribute it and/or modify
@@ -87,12 +89,20 @@ static ssize_t vfsdev_write(struct file* file, const char __user *user_buffer, s
 	return 0;
 }
 
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(2,6,35))
 static int vfsdev_ioctl(struct inode* inode, struct file *file, unsigned int cmd, unsigned long arg)
+#else
+static long vfsdev_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
+#endif
 {
 	struct vfs_device_t *dev;
 	struct usb_interface *interface;
 	int subminor;
 	int retval;
+
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,35))
+	struct inode* inode = file->f_inode;
+#endif
 
 	DBG("ioctl request %x", cmd);
 
@@ -201,7 +211,11 @@ static struct file_operations vfsdev_fops = {
 	.owner = THIS_MODULE,
 	.read = vfsdev_read,
 	.write = vfsdev_write,
-	.ioctl = vfsdev_ioctl,
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(2,6,35))
+    .ioctl = vfsdev_ioctl,
+#else
+    .unlocked_ioctl = vfsdev_ioctl,
+#endif
 	.open = vfsdev_open,
 	.release = vfsdev_release,
 	.flush = vfsdev_flush,

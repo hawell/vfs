@@ -1,0 +1,15 @@
+/.protocol.o.cmd
+/.usb_device.o.cmd
+/.validity_vfs.o.cmd
+/.vfs301.ko.cmd
+/.vfs301.mod.o.cmd
+/.vfs301.o.cmd
+/Module.symvers
+/modules.order
+/protocol.o
+/usb_device.o
+/validity_vfs.o
+/vfs301.ko
+/vfs301.mod.c
+/vfs301.mod.o
+/vfs301.o
